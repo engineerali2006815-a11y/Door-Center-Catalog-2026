@@ -1,0 +1,40 @@
+{
+  "placeholderImages": [
+    {
+      "id": "door-1",
+      "description": "Modern Turkish Wood Door with Dark Finish",
+      "imageUrl": "https://picsum.photos/seed/door1/600/800",
+      "imageHint": "Turkish door wood"
+    },
+    {
+      "id": "door-2",
+      "description": "Classic White Turkish Door with Gold Accents",
+      "imageUrl": "https://picsum.photos/seed/door2/600/800",
+      "imageHint": "Classic door white"
+    },
+    {
+      "id": "door-3",
+      "description": "Minimalist Grey Turkish Door for Apartments",
+      "imageUrl": "https://picsum.photos/seed/door3/600/800",
+      "imageHint": "Minimalist door grey"
+    },
+    {
+      "id": "door-4",
+      "description": "Traditional Carved Wood Turkish Door",
+      "imageUrl": "https://picsum.photos/seed/door4/600/800",
+      "imageHint": "Traditional door carved"
+    },
+    {
+      "id": "door-5",
+      "description": "Steel Reinforced Security Turkish Door",
+      "imageUrl": "https://picsum.photos/seed/door5/600/800",
+      "imageHint": "Security door steel"
+    },
+    {
+      "id": "door-6",
+      "description": "Luxurious Walnut Finish Turkish Door",
+      "imageUrl": "https://picsum.photos/seed/door6/600/800",
+      "imageHint": "Walnut door luxury"
+    }
+  ]
+}
