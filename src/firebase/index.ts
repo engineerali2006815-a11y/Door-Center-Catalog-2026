@@ -1,9 +1,8 @@
-
 'use client';
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth, signInAnonymously } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 export function initializeFirebase() {
@@ -11,8 +10,13 @@ export function initializeFirebase() {
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // تسجيل دخول مجهول لضمان القدرة على الكتابة والقراءة
-  signInAnonymously(auth).catch(err => console.error("Auth error:", err));
+  // تسجيل دخول مجهول في الخلفية لضمان عمل Security Rules
+  if (typeof window !== 'undefined') {
+    signInAnonymously(auth).catch(err => {
+      // نتجاهل خطأ API Key في هذه المرحلة إذا كان المتصفح لم يقم بتحديث الإعدادات بعد
+      console.warn("Auth initialization warning:", err.message);
+    });
+  }
 
   return { firebaseApp: app, firestore: db, auth };
 }

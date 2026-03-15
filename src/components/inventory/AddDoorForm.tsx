@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useCallback } from 'react';
@@ -70,7 +69,6 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
     
     setLoading(true);
     
-    // إذا لم تتوفر صورة، استخدم صورة افتراضية
     let finalImageUrl = formData.imageUrl;
     if (!finalImageUrl) {
       const randomIndex = Math.floor(Math.random() * PlaceHolderImages.length);
@@ -79,7 +77,7 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
     
     const doorData = {
       code: formData.code,
-      quantity: formData.quantity,
+      quantity: Number(formData.quantity),
       imageUrl: finalImageUrl,
     };
 

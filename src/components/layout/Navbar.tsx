@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from 'react';
@@ -18,7 +17,7 @@ export function Navbar() {
           </div>
         </div>
         
-        <div className="hidden md:flex items-center gap-8 font-body">
+        <div className="flex items-center gap-8 font-body">
           <span className="text-primary font-bold border-b-2 border-primary pb-1">المخزون</span>
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo } from 'react';
@@ -34,7 +33,6 @@ export default function InventoryDashboard() {
   const [editingDoor, setEditingDoor] = useState<Door | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // الربط مع قاعدة البيانات السحابية (Firestore) للمزامنة اللحظية
   const doorsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'doors'), orderBy('code', 'asc'));
@@ -44,7 +42,8 @@ export default function InventoryDashboard() {
 
   const filteredDoors = useMemo(() => {
     if (!doors) return [];
-    return doors.filter(door => 
+    const typedDoors = doors as unknown as Door[];
+    return typedDoors.filter(door => 
       door.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [doors, searchQuery]);
@@ -109,7 +108,6 @@ export default function InventoryDashboard() {
           </div>
         </header>
 
-        {/* نافذة التعديل */}
         <Dialog open={!!editingDoor} onOpenChange={(open) => !open && setEditingDoor(null)}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
@@ -169,16 +167,6 @@ export default function InventoryDashboard() {
           </div>
         )}
       </main>
-      
-      <footer className="mt-20 border-t bg-white py-12">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col items-center md:items-start">
-            <h4 className="text-xl font-bold text-primary">Door Center</h4>
-            <span className="text-[10px] tracking-widest text-accent-foreground font-semibold mt-1">مركز الأبواب / 2017</span>
-          </div>
-          <p className="text-sm text-muted-foreground">© 2024 جميع الحقوق محفوظة لـ Door Center.</p>
-        </div>
-      </footer>
     </div>
   );
 }
