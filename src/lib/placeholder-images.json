@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "door-1",
+      "description": "Modern Turkish Wood Door",
+      "imageUrl": "https://picsum.photos/seed/door1/600/800",
+      "imageHint": "Turkish door"
+    },
+    {
+      "id": "door-2",
+      "description": "Classic Turkish Door",
+      "imageUrl": "https://picsum.photos/seed/door2/600/800",
+      "imageHint": "Classic door"
+    },
+    {
+      "id": "door-3",
+      "description": "Security Turkish Door",
+      "imageUrl": "https://picsum.photos/seed/door3/600/800",
+      "imageHint": "Steel door"
+    }
+  ]
 }

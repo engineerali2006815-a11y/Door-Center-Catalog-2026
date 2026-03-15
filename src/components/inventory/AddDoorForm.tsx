@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -16,23 +17,31 @@ interface AddDoorFormProps {
 export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) {
   const [formData, setFormData] = useState({
     code: initialData?.code || '',
-    quantity: initialData?.quantity || 1,
+    quantity: initialData?.quantity || 0,
     imageUrl: initialData?.imageUrl || '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // If no image URL is provided, use a random placeholder
-    const finalImageUrl = formData.imageUrl || 
-      PlaceHolderImages[Math.floor(Math.random() * PlaceHolderImages.length)].imageUrl;
+    // Safety check for placeholder images
+    let finalImageUrl = formData.imageUrl;
+    if (!finalImageUrl) {
+      if (PlaceHolderImages && PlaceHolderImages.length > 0) {
+        const randomIndex = Math.floor(Math.random() * PlaceHolderImages.length);
+        finalImageUrl = PlaceHolderImages[randomIndex].imageUrl;
+      } else {
+        // Fallback to a static picsum image if array is empty
+        finalImageUrl = `https://picsum.photos/seed/${Math.random()}/600/800`;
+      }
+    }
     
     onAdd({
       id: initialData?.id || Math.random().toString(36).substr(2, 9),
-      name: formData.code, // Use code as name for simplicity
-      style: 'تركي',
-      material: 'خشب',
-      color: 'افتراضي',
+      name: formData.code,
+      style: initialData?.style || 'تركي',
+      material: initialData?.material || 'خشب',
+      color: initialData?.color || 'افتراضي',
       ...formData,
       imageUrl: finalImageUrl,
     });
@@ -48,7 +57,7 @@ export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) 
             required 
             value={formData.code} 
             onChange={e => setFormData(p => ({ ...p, code: e.target.value }))}
-            placeholder="مثال: TKR-2024"
+            placeholder="مثال: TR-500"
             dir="ltr"
           />
         </div>
@@ -66,7 +75,7 @@ export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="imageUrl" className="text-right block">رابط صورة المنتج (اختياري)</Label>
+          <Label htmlFor="imageUrl" className="text-right block">رابط الصورة (اختياري)</Label>
           <Input 
             id="imageUrl" 
             value={formData.imageUrl} 
@@ -74,7 +83,7 @@ export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) 
             placeholder="أدخل رابط الصورة هنا..."
             dir="ltr"
           />
-          <p className="text-[10px] text-muted-foreground mt-1">في حال ترك الحقل فارغاً، سيتم اختيار صورة عشوائية.</p>
+          <p className="text-[10px] text-muted-foreground mt-1 text-right">في حال ترك الحقل فارغاً، سيتم اختيار صورة تلقائية.</p>
         </div>
       </div>
 
