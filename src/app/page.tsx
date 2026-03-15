@@ -1,7 +1,7 @@
+
 "use client"
 
 import React, { useState, useMemo } from 'react';
-import { Door } from '@/lib/inventory-types';
 import { Navbar } from '@/components/layout/Navbar';
 import { DoorCard } from '@/components/inventory/DoorCard';
 import { AddDoorForm } from '@/components/inventory/AddDoorForm';
@@ -17,67 +17,48 @@ import { Input } from '@/components/ui/input';
 import { 
   Plus, 
   Search, 
-  SlidersHorizontal, 
   PackageSearch,
   LayoutGrid,
-  List
+  List,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const INITIAL_DOORS: Door[] = [
-  {
-    id: '1',
-    code: 'TR-101',
-    name: 'TR-101',
-    quantity: 12,
-    imageUrl: 'https://picsum.photos/seed/door1/600/800',
-    style: 'حديث',
-    material: 'خشب',
-    color: 'بني'
-  },
-  {
-    id: '2',
-    code: 'TR-102',
-    name: 'TR-102',
-    quantity: 0,
-    imageUrl: 'https://picsum.photos/seed/door5/600/800',
-    style: 'حديث',
-    material: 'فولاذ',
-    color: 'أسود'
-  }
-];
+import { useCollection, useFirestore } from '@/firebase';
+import { collection, query, orderBy, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { Door } from '@/lib/inventory-types';
 
 export default function InventoryDashboard() {
-  const [doors, setDoors] = useState<Door[]>(INITIAL_DOORS);
+  const db = useFirestore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingDoor, setEditingDoor] = useState<Door | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  // الربط مع قاعدة البيانات السحابية (Firestore) للمزامنة اللحظية
+  const doorsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'doors'), orderBy('code', 'asc'));
+  }, [db]);
+
+  const { data: doors, loading } = useCollection(doorsQuery);
+
   const filteredDoors = useMemo(() => {
+    if (!doors) return [];
     return doors.filter(door => 
       door.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [doors, searchQuery]);
 
   const handleUpdateQuantity = (id: string, newQty: number) => {
-    setDoors(prev => prev.map(door => 
-      door.id === id ? { ...door, quantity: Math.max(0, newQty) } : door
-    ));
-  };
-
-  const handleAddDoor = (newDoor: Door) => {
-    if (editingDoor) {
-      setDoors(prev => prev.map(d => d.id === newDoor.id ? newDoor : d));
-      setEditingDoor(null);
-    } else {
-      setDoors(prev => [newDoor, ...prev]);
-      setIsAddDialogOpen(false);
-    }
+    if (!db) return;
+    const doorRef = doc(db, 'doors', id);
+    updateDoc(doorRef, { quantity: Math.max(0, newQty) });
   };
 
   const handleDeleteDoor = (id: string) => {
-    setDoors(prev => prev.filter(d => d.id !== id));
+    if (!db || !confirm('هل أنت متأكد من حذف هذا الباب؟')) return;
+    const doorRef = doc(db, 'doors', id);
+    deleteDoc(doorRef);
   };
 
   return (
@@ -88,7 +69,7 @@ export default function InventoryDashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div>
             <h2 className="text-3xl font-bold text-primary">إدارة المخزون</h2>
-            <p className="text-muted-foreground mt-1">تتبع الأبواب المتاحة في مستودع Door Center</p>
+            <p className="text-muted-foreground mt-1">تتبع الأبواب المتاحة في مستودع Door Center (سحابي ومتزامن)</p>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
@@ -122,13 +103,13 @@ export default function InventoryDashboard() {
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-bold text-primary text-right">إضافة منتج للمخزون</DialogTitle>
                 </DialogHeader>
-                <AddDoorForm onAdd={handleAddDoor} onCancel={() => setIsAddDialogOpen(false)} />
+                <AddDoorForm onCancel={() => setIsAddDialogOpen(false)} />
               </DialogContent>
             </Dialog>
           </div>
         </header>
 
-        {/* Edit Dialog */}
+        {/* نافذة التعديل */}
         <Dialog open={!!editingDoor} onOpenChange={(open) => !open && setEditingDoor(null)}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
@@ -137,15 +118,14 @@ export default function InventoryDashboard() {
             {editingDoor && (
               <AddDoorForm 
                 initialData={editingDoor} 
-                onAdd={handleAddDoor} 
                 onCancel={() => setEditingDoor(null)} 
               />
             )}
           </DialogContent>
         </Dialog>
 
-        <section className="bg-white/50 backdrop-blur-sm p-4 rounded-xl border mb-8 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
+        <section className="bg-white/50 backdrop-blur-sm p-4 rounded-xl border mb-8">
+          <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <Input 
               placeholder="ابحث برمز الباب..." 
@@ -154,13 +134,14 @@ export default function InventoryDashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="h-12 gap-2 px-6 border-accent bg-white/80">
-            <SlidersHorizontal className="w-5 h-5 text-accent-foreground" />
-            <span>تصفية</span>
-          </Button>
         </section>
 
-        {filteredDoors.length > 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+            <p className="text-muted-foreground">جاري تحميل البيانات من السحابة...</p>
+          </div>
+        ) : filteredDoors.length > 0 ? (
           <div className={cn(
             "grid gap-8",
             viewMode === 'grid' 

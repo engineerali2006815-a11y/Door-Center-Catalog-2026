@@ -7,17 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { UploadCloud, Image as ImageIcon, X } from 'lucide-react';
+import { UploadCloud, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 
 interface AddDoorFormProps {
-  onAdd: (door: Door) => void;
   onCancel: () => void;
   initialData?: Door;
 }
 
-export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) {
+export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
+  const db = useFirestore();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: initialData?.code || '',
     quantity: initialData?.quantity || 0,
@@ -61,28 +64,38 @@ export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) 
     if (file) handleFile(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!db) return;
     
+    setLoading(true);
+    
+    // إذا لم تتوفر صورة، استخدم صورة افتراضية
     let finalImageUrl = formData.imageUrl;
     if (!finalImageUrl) {
-      if (PlaceHolderImages && PlaceHolderImages.length > 0) {
-        const randomIndex = Math.floor(Math.random() * PlaceHolderImages.length);
-        finalImageUrl = PlaceHolderImages[randomIndex].imageUrl;
-      } else {
-        finalImageUrl = `https://picsum.photos/seed/${Math.random()}/600/800`;
-      }
+      const randomIndex = Math.floor(Math.random() * PlaceHolderImages.length);
+      finalImageUrl = PlaceHolderImages[randomIndex].imageUrl;
     }
     
-    onAdd({
-      id: initialData?.id || Math.random().toString(36).substr(2, 9),
-      name: formData.code,
-      style: initialData?.style || 'تركي',
-      material: initialData?.material || 'خشب',
-      color: initialData?.color || 'افتراضي',
-      ...formData,
+    const doorData = {
+      code: formData.code,
+      quantity: formData.quantity,
       imageUrl: finalImageUrl,
-    });
+    };
+
+    try {
+      if (initialData) {
+        const doorRef = doc(db, 'doors', initialData.id);
+        await updateDoc(doorRef, doorData);
+      } else {
+        await addDoc(collection(db, 'doors'), doorData);
+      }
+      onCancel();
+    } catch (error) {
+      console.error("Error saving door:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearImage = () => {
@@ -120,7 +133,7 @@ export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) 
         </div>
 
         <div className="space-y-2">
-          <Label className="text-right block font-bold text-primary">صورة الباب</Label>
+          <Label className="text-right block font-bold text-primary">صورة الباب (اسحب وأفلت هنا)</Label>
           
           {previewUrl ? (
             <div className="relative aspect-[3/4] w-full max-w-[200px] mx-auto rounded-xl overflow-hidden border-2 border-primary shadow-md group">
@@ -152,7 +165,7 @@ export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) 
               <UploadCloud className={cn("w-12 h-12 transition-colors", isDragging ? "text-primary" : "text-muted-foreground")} />
               <div className="text-center">
                 <p className="font-bold text-sm">اسحب الصورة هنا أو اضغط للاختيار</p>
-                <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG حتى 5MB</p>
+                <p className="text-[10px] text-muted-foreground mt-1">سيتم حفظ الصورة سحابياً</p>
               </div>
               <input 
                 id="fileInput"
@@ -167,11 +180,11 @@ export function AddDoorForm({ onAdd, onCancel, initialData }: AddDoorFormProps) 
       </div>
 
       <div className="flex gap-3 justify-end pt-4 border-t">
-        <Button type="button" variant="ghost" onClick={onCancel}>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>
           إلغاء
         </Button>
-        <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[140px] h-12 text-lg font-bold shadow-lg shadow-primary/20">
-          {initialData ? 'حفظ التغييرات' : 'إضافة للمخزون'}
+        <Button type="submit" disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[140px] h-12 text-lg font-bold shadow-lg shadow-primary/20">
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : initialData ? 'حفظ التغييرات' : 'إضافة للمخزون'}
         </Button>
       </div>
     </form>

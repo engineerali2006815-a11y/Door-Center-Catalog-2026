@@ -1,0 +1,40 @@
+
+{
+  "entities": {
+    "Door": {
+      "title": "Door",
+      "description": "تمثيل لباب في المخزون",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "رمز الباب التعريفي"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "الكمية المتوفرة في المخزن"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "رابط صورة الباب"
+        }
+      },
+      "required": [
+        "code",
+        "quantity",
+        "imageUrl"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "/doors/{doorId}": {
+      "schema": "Door",
+      "description": "مجموعة الأبواب في المخزون"
+    }
+  }
+}
