@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, doors } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -87,6 +87,73 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllDoors() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get doors: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(doors).orderBy(doors.createdAt);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get doors:", error);
+    return [];
+  }
+}
+
+export async function addDoor(code: string, imageUrl: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.insert(doors).values({
+      code,
+      imageUrl,
+    });
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to add door:", error);
+    throw error;
+  }
+}
+
+export async function updateDoor(id: number, code: string, imageUrl: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.update(doors).set({
+      code,
+      imageUrl,
+    }).where(eq(doors.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update door:", error);
+    throw error;
+  }
+}
+
+export async function deleteDoor(id: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.delete(doors).where(eq(doors.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to delete door:", error);
+    throw error;
+  }
 }
 
 // TODO: add feature queries here as your schema grows.
