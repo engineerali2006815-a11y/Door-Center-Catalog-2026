@@ -22,7 +22,6 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: initialData?.code || '',
-    quantity: initialData?.quantity || 0,
     imageUrl: initialData?.imageUrl || '',
   });
   
@@ -77,7 +76,6 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
     
     const doorData = {
       code: formData.code,
-      quantity: Number(formData.quantity),
       imageUrl: finalImageUrl,
     };
 
@@ -116,19 +114,6 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
             dir="ltr"
           />
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="quantity" className="text-right block font-bold text-primary">الكمية</Label>
-          <Input 
-            id="quantity" 
-            type="number" 
-            required 
-            min="0"
-            className="h-12 text-lg text-center font-bold"
-            value={formData.quantity} 
-            onChange={e => setFormData(p => ({ ...p, quantity: parseInt(e.target.value) || 0 }))}
-          />
-        </div>
 
         <div className="space-y-2">
           <Label className="text-right block font-bold text-primary">صورة الباب (اسحب وأفلت هنا)</Label>
@@ -163,7 +148,6 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
               <UploadCloud className={cn("w-12 h-12 transition-colors", isDragging ? "text-primary" : "text-muted-foreground")} />
               <div className="text-center">
                 <p className="font-bold text-sm">اسحب الصورة هنا أو اضغط للاختيار</p>
-                <p className="text-[10px] text-muted-foreground mt-1">سيتم حفظ الصورة سحابياً</p>
               </div>
               <input 
                 id="fileInput"
@@ -182,7 +166,7 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
           إلغاء
         </Button>
         <Button type="submit" disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[140px] h-12 text-lg font-bold shadow-lg shadow-primary/20">
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : initialData ? 'حفظ التغييرات' : 'إضافة للمخزون'}
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : initialData ? 'حفظ التغييرات' : 'إضافة للكتالوج'}
         </Button>
       </div>
     </form>
