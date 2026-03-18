@@ -60,8 +60,7 @@ export default function CatalogDashboard() {
   }, [doors, searchQuery]);
 
   const handleDeleteDoor = async (id: string) => {
-    if (!db) return;
-    if (!window.confirm('هل أنت متأكد من حذف هذا الباب؟')) return;
+    if (!db || !id) return;
     
     try {
       const doorRef = doc(db, 'doors', id);

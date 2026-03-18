@@ -65,7 +65,7 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
     if (file) handleFile(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db) return;
     
@@ -82,31 +82,23 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
       imageUrl: finalImageUrl,
     };
 
-    if (initialData) {
-      const doorRef = doc(db, 'doors', initialData.id);
-      updateDoc(doorRef, doorData)
-        .catch((error) => {
-          toast({
-            variant: "destructive",
-            title: "خطأ في التعديل",
-            description: "فشل تحديث بيانات الباب.",
-          });
-        })
-        .finally(() => setLoading(false));
-    } else {
-      addDoc(collection(db, 'doors'), doorData)
-        .catch((error) => {
-          toast({
-            variant: "destructive",
-            title: "خطأ في الإضافة",
-            description: "فشل إضافة الباب الجديد للكتالوج.",
-          });
-        })
-        .finally(() => setLoading(false));
+    try {
+      if (initialData) {
+        const doorRef = doc(db, 'doors', initialData.id);
+        await updateDoc(doorRef, doorData);
+      } else {
+        await addDoc(collection(db, 'doors'), doorData);
+      }
+      onCancel(); // Close modal on success
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشل تنفيذ العملية. يرجى المحاولة لاحقاً.",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    // Close the form immediately after initiating the Firestore action
-    onCancel();
   };
 
   const clearImage = () => {

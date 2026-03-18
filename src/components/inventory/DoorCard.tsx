@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit2, Trash2, Maximize2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface DoorCardProps {
   door: Door;
@@ -55,7 +54,6 @@ export function DoorCard({ door, isAdmin, onDelete, onEdit, onImageClick }: Door
             <Edit2 className="w-4 h-4 text-accent-foreground" />
           </Button>
           <Button 
-            type="button"
             variant="ghost" 
             size="icon" 
             onClick={(e) => {
@@ -64,7 +62,7 @@ export function DoorCard({ door, isAdmin, onDelete, onEdit, onImageClick }: Door
                 onDelete?.(door.id);
               }
             }} 
-            className="h-9 w-9 text-destructive hover:bg-destructive/10"
+            className="h-9 w-9 text-destructive hover:bg-destructive/20 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
