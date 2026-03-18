@@ -86,11 +86,22 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
       if (initialData) {
         const doorRef = doc(db, 'doors', initialData.id);
         await updateDoc(doorRef, doorData);
+        toast({
+          title: "تم التحديث",
+          description: "تم حفظ التغييرات بنجاح.",
+        });
       } else {
         await addDoc(collection(db, 'doors'), doorData);
+        toast({
+          title: "تمت الإضافة",
+          description: "تمت إضافة الباب الجديد للكتالوج.",
+        });
       }
-      onCancel(); // Close modal on success
+      
+      // إغلاق النافذة المنبثقة فوراً بعد نجاح العملية
+      onCancel();
     } catch (error) {
+      console.error("Firestore operation error:", error);
       toast({
         variant: "destructive",
         title: "حدث خطأ",
