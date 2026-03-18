@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo } from 'react';
@@ -28,11 +29,13 @@ import { cn } from '@/lib/utils';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { Door } from '@/lib/inventory-types';
+import { useToast } from '@/hooks/use-toast';
 
 type Role = 'admin' | 'customer' | null;
 
 export default function CatalogDashboard() {
   const db = useFirestore();
+  const { toast } = useToast();
   const [role, setRole] = useState<Role>(null);
   const [passcode, setPasscode] = useState('');
   const [passcodeError, setPasscodeError] = useState(false);
@@ -58,9 +61,17 @@ export default function CatalogDashboard() {
   }, [doors, searchQuery]);
 
   const handleDeleteDoor = (id: string) => {
-    if (!db || !confirm('هل أنت متأكد من حذف هذا الباب؟')) return;
+    if (!db) return;
+    if (!window.confirm('هل أنت متأكد من حذف هذا الباب؟')) return;
+    
     const doorRef = doc(db, 'doors', id);
-    deleteDoc(doorRef);
+    deleteDoc(doorRef).catch((error) => {
+      toast({
+        variant: "destructive",
+        title: "خطأ في الحذف",
+        description: "لم يتم حذف الباب بنجاح. يرجى التحقق من الصلاحيات.",
+      });
+    });
   };
 
   const handleAdminAuth = (e: React.FormEvent) => {

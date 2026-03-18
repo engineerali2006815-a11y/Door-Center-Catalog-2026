@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useCallback } from 'react';
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddDoorFormProps {
   onCancel: () => void;
@@ -19,6 +21,7 @@ interface AddDoorFormProps {
 
 export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
   const db = useFirestore();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: initialData?.code || '',
@@ -62,7 +65,7 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
     if (file) handleFile(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!db) return;
     
@@ -79,19 +82,31 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
       imageUrl: finalImageUrl,
     };
 
-    try {
-      if (initialData) {
-        const doorRef = doc(db, 'doors', initialData.id);
-        await updateDoc(doorRef, doorData);
-      } else {
-        await addDoc(collection(db, 'doors'), doorData);
-      }
-      onCancel();
-    } catch (error) {
-      console.error("Error saving door:", error);
-    } finally {
-      setLoading(false);
+    if (initialData) {
+      const doorRef = doc(db, 'doors', initialData.id);
+      updateDoc(doorRef, doorData)
+        .catch((error) => {
+          toast({
+            variant: "destructive",
+            title: "خطأ في التعديل",
+            description: "فشل تحديث بيانات الباب.",
+          });
+        })
+        .finally(() => setLoading(false));
+    } else {
+      addDoc(collection(db, 'doors'), doorData)
+        .catch((error) => {
+          toast({
+            variant: "destructive",
+            title: "خطأ في الإضافة",
+            description: "فشل إضافة الباب الجديد للكتالوج.",
+          });
+        })
+        .finally(() => setLoading(false));
     }
+
+    // Close the form immediately after initiating the Firestore action
+    onCancel();
   };
 
   const clearImage = () => {
