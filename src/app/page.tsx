@@ -54,24 +54,29 @@ export default function CatalogDashboard() {
 
   const filteredDoors = useMemo(() => {
     if (!doors) return [];
-    const typedDoors = doors as unknown as Door[];
-    return typedDoors.filter(door => 
+    return (doors as unknown as Door[]).filter(door => 
       door.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [doors, searchQuery]);
 
-  const handleDeleteDoor = (id: string) => {
+  const handleDeleteDoor = async (id: string) => {
     if (!db) return;
     if (!window.confirm('هل أنت متأكد من حذف هذا الباب؟')) return;
     
-    const doorRef = doc(db, 'doors', id);
-    deleteDoc(doorRef).catch((error) => {
+    try {
+      const doorRef = doc(db, 'doors', id);
+      await deleteDoc(doorRef);
+      toast({
+        title: "تم الحذف",
+        description: "تمت إزالة الباب من الكتالوج بنجاح.",
+      });
+    } catch (error) {
       toast({
         variant: "destructive",
         title: "خطأ في الحذف",
-        description: "لم يتم حذف الباب بنجاح. يرجى التحقق من الصلاحيات.",
+        description: "لم يتم حذف الباب بنجاح. يرجى المحاولة مرة أخرى.",
       });
-    });
+    }
   };
 
   const handleAdminAuth = (e: React.FormEvent) => {

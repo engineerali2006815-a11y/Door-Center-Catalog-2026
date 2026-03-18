@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -46,14 +47,23 @@ export function DoorCard({ door, isAdmin, onDelete, onEdit, onImageClick }: Door
             variant="outline" 
             size="icon" 
             className="h-9 w-9 border-accent hover:bg-accent/10"
-            onClick={() => onEdit?.(door)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.(door);
+            }}
           >
             <Edit2 className="w-4 h-4 text-accent-foreground" />
           </Button>
           <Button 
+            type="button"
             variant="ghost" 
             size="icon" 
-            onClick={() => onDelete?.(door.id)} 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (door.id) {
+                onDelete?.(door.id);
+              }
+            }} 
             className="h-9 w-9 text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="w-4 h-4" />
