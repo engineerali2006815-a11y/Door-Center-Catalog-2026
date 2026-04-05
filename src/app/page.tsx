@@ -20,10 +20,7 @@ import {
   PackageSearch,
   Loader2,
   ShieldCheck,
-  User,
-  ZoomIn,
-  ZoomOut,
-  X
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCollection, useFirestore } from '@/firebase';
@@ -42,8 +39,6 @@ export default function CatalogDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingDoor, setEditingDoor] = useState<Door | null>(null);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
 
   const doorsQuery = useMemo(() => {
     if (!db) return null;
@@ -215,10 +210,6 @@ export default function CatalogDashboard() {
                 isAdmin={role === 'admin'}
                 onDelete={handleDeleteDoor}
                 onEdit={(d) => setEditingDoor(d)}
-                onImageClick={(url) => {
-                  setSelectedImageUrl(url);
-                  setZoomLevel(1);
-                }}
               />
             ))}
           </div>
@@ -232,51 +223,6 @@ export default function CatalogDashboard() {
           </div>
         )}
       </main>
-
-      {/* Fullscreen Image Viewer */}
-      {selectedImageUrl && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center overflow-hidden touch-none">
-          <div className="absolute top-4 right-4 flex gap-4 z-10">
-            <Button 
-              variant="secondary" 
-              size="icon" 
-              className="rounded-full w-12 h-12 bg-white/10 hover:bg-white/20 border-white/20 text-white"
-              onClick={() => setZoomLevel(prev => Math.min(prev + 0.5, 4))}
-            >
-              <ZoomIn className="w-6 h-6" />
-            </Button>
-            <Button 
-              variant="secondary" 
-              size="icon" 
-              className="rounded-full w-12 h-12 bg-white/10 hover:bg-white/20 border-white/20 text-white"
-              onClick={() => setZoomLevel(prev => Math.max(prev - 0.5, 1))}
-            >
-              <ZoomOut className="w-6 h-6" />
-            </Button>
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              className="rounded-full w-12 h-12"
-              onClick={() => setSelectedImageUrl(null)}
-            >
-              <X className="w-6 h-6" />
-            </Button>
-          </div>
-          
-          <div className="relative w-full h-full flex items-center justify-center overflow-auto p-4">
-            <div 
-              className="relative transition-transform duration-200 ease-out"
-              style={{ transform: `scale(${zoomLevel})` }}
-            >
-              <img 
-                src={selectedImageUrl} 
-                alt="Fullscreen" 
-                className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl rounded-sm"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

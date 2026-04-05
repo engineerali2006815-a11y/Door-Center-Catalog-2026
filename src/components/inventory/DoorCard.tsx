@@ -7,32 +7,25 @@ import { Door } from '@/lib/inventory-types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit2, Trash2, Maximize2 } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 
 interface DoorCardProps {
   door: Door;
   isAdmin: boolean;
   onDelete?: (id: string) => void;
   onEdit?: (door: Door) => void;
-  onImageClick: (imageUrl: string) => void;
 }
 
-export function DoorCard({ door, isAdmin, onDelete, onEdit, onImageClick }: DoorCardProps) {
+export function DoorCard({ door, isAdmin, onDelete, onEdit }: DoorCardProps) {
   return (
     <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl border-none bg-white/80 backdrop-blur-sm">
-      <div 
-        className="relative aspect-[3/4] overflow-hidden cursor-zoom-in"
-        onClick={() => onImageClick(door.imageUrl)}
-      >
+      <div className="relative aspect-[3/4] overflow-hidden">
         <Image
           src={door.imageUrl}
           alt={door.code}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover"
         />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-          <Maximize2 className="text-white opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8" />
-        </div>
         <div className="absolute top-2 right-2">
           <Badge variant="secondary" className="font-semibold shadow-sm bg-white/90 text-primary border-none text-lg px-3">
             {door.code}
