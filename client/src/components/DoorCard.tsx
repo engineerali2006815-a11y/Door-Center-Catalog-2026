@@ -15,22 +15,17 @@ interface DoorCardProps {
   isAdmin: boolean;
   onDelete: (id: number) => void;
   onEdit: (door: Door) => void;
-  onImageClick: (url: string) => void;
 }
 
-export default function DoorCard({ door, isAdmin, onDelete, onEdit, onImageClick }: DoorCardProps) {
+export default function DoorCard({ door, isAdmin, onDelete, onEdit }: DoorCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div
-        className="relative aspect-[3/4] bg-gray-200 cursor-pointer overflow-hidden group"
-        onClick={() => onImageClick(door.imageUrl)}
-      >
+      <div className="relative aspect-[3/4] bg-gray-200 overflow-hidden group">
         <img
           src={door.imageUrl}
           alt={door.code}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
       </div>
 
       <CardContent className="p-4 space-y-4">

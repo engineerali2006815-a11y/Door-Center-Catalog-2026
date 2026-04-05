@@ -3,7 +3,7 @@ import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Plus, Search, PackageSearch, ShieldCheck, User, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { Loader2, Plus, Search, PackageSearch, ShieldCheck, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddDoorForm from '@/components/AddDoorForm';
 import DoorCard from '@/components/DoorCard';
@@ -17,8 +17,6 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingDoor, setEditingDoor] = useState<any | null>(null);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
 
   const { data: doors = [], isLoading } = trpc.doors.list.useQuery();
   const deleteMutation = trpc.doors.delete.useMutation();
@@ -179,10 +177,6 @@ export default function Home() {
                 isAdmin={role === 'admin'}
                 onDelete={handleDeleteDoor}
                 onEdit={(d) => setEditingDoor(d)}
-                onImageClick={(url) => {
-                  setSelectedImageUrl(url);
-                  setZoomLevel(1);
-                }}
               />
             ))}
           </div>
@@ -196,51 +190,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      {/* Fullscreen Image Viewer */}
-      {selectedImageUrl && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center overflow-hidden touch-none">
-          <div className="absolute top-4 left-4 flex gap-4 z-10">
-            <Button
-              variant="secondary"
-              size="icon"
-              className="rounded-full w-12 h-12 bg-white/10 hover:bg-white/20 border-white/20 text-white"
-              onClick={() => setZoomLevel(prev => Math.min(prev + 0.5, 4))}
-            >
-              <ZoomIn className="w-6 h-6" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              className="rounded-full w-12 h-12 bg-white/10 hover:bg-white/20 border-white/20 text-white"
-              onClick={() => setZoomLevel(prev => Math.max(prev - 0.5, 1))}
-            >
-              <ZoomOut className="w-6 h-6" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              className="rounded-full w-12 h-12"
-              onClick={() => setSelectedImageUrl(null)}
-            >
-              <X className="w-6 h-6" />
-            </Button>
-          </div>
-
-          <div className="relative w-full h-full flex items-center justify-center overflow-auto p-4">
-            <div
-              className="relative transition-transform duration-200 ease-out"
-              style={{ transform: `scale(${zoomLevel})` }}
-            >
-              <img
-                src={selectedImageUrl}
-                alt="Fullscreen"
-                className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl rounded-sm"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
