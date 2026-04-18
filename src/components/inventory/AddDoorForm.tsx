@@ -70,6 +70,7 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
     if (!db) return;
     
     setLoading(true);
+    console.log("Saving door via ImgBB... Vercel TRIGGER");
     
     let finalImageUrl = formData.imageUrl;
     
