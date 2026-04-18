@@ -57,6 +57,8 @@ export default function CatalogDashboard() {
   const handleDeleteDoor = async (id: string) => {
     if (!db || !id) return;
     
+    if (!window.confirm('هل أنت متأكد من رغبتك بحذف هذا الباب نهائياً؟')) return;
+    
     try {
       const doorRef = doc(db, 'doors', id);
       await deleteDoc(doorRef);
