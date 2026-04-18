@@ -72,7 +72,40 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
     setLoading(true);
     
     let finalImageUrl = formData.imageUrl;
-    if (!finalImageUrl) {
+    
+    // إذا قام المستخدم برفع صورة جديدة (تكون بصيغة data url) نرفعها أولاً لـ ImgBB بشكل مجاني تماماً
+    if (finalImageUrl && finalImageUrl.startsWith('data:')) {
+      try {
+        const base64Data = finalImageUrl.split(',')[1];
+        const form = new FormData();
+        form.append('image', base64Data);
+        
+        // مفتاح ImgBB الخاص بك
+        const imgbbApiKey = "e4c1531629a5404f1a08e768a88b38de"; 
+        
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
+          method: 'POST',
+          body: form,
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          finalImageUrl = data.data.url;
+        } else {
+          throw new Error('فشل الرفع إلى مساحة الصور');
+        }
+      } catch (err) {
+        console.error("ImgBB upload error:", err);
+        toast({
+          variant: "destructive",
+          title: "فشل الرفع",
+          description: "تأكد من اتصالك بالإنترنت وحاول مرة أخرى.",
+        });
+        setLoading(false);
+        return;
+      }
+    } else if (!finalImageUrl && !initialData) {
+      // فقط في حالة الإضافة بدون صورة (أما لو كان تعديل ولم تتغير الصورة، فلا نغير التلقائي)
       const randomIndex = Math.floor(Math.random() * PlaceHolderImages.length);
       finalImageUrl = PlaceHolderImages[randomIndex].imageUrl;
     }
@@ -97,18 +130,17 @@ export function AddDoorForm({ onCancel, initialData }: AddDoorFormProps) {
           description: "تمت إضافة الباب الجديد للكتالوج.",
         });
       }
-      
-      // إغلاق النافذة المنبثقة فوراً بعد نجاح العملية
-      onCancel();
     } catch (error) {
       console.error("Firestore operation error:", error);
       toast({
         variant: "destructive",
-        title: "حدث خطأ",
-        description: "فشل تنفيذ العملية. يرجى المحاولة لاحقاً.",
+        title: "تنبيه بالنظام",
+        description: "تم تحديث الواجهة محلياً ولكن هناك مشكلة في قاعدة البيانات السحابية.",
       });
     } finally {
       setLoading(false);
+      // إغلاق النافذة المنبثقة بعد انتهاء العملية سواء بنجاح أو فشل
+      onCancel();
     }
   };
 

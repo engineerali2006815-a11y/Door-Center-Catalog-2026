@@ -3,8 +3,15 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Door Center | إدارة المخزون',
-  description: 'إدارة مخزون الأبواب التركية الفاخرة بشكل سحابي ومتزامن',
+  title: 'Door Center | كتلوج الابواب التركية',
+  description: 'اضغط هنا للدخول الى كتلوج الابواب التركية',
+  openGraph: {
+    title: 'Door Center | كتلوج الابواب التركية',
+    description: 'اضغط هنا للدخول الى كتلوج الابواب التركية',
+    siteName: 'Door Center',
+    locale: 'ar_SA',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

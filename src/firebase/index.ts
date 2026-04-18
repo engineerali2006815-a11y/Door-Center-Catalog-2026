@@ -3,12 +3,14 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 import { firebaseConfig } from './config';
 
 export function initializeFirebase() {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  const storage = getStorage(app);
 
   // تسجيل دخول مجهول في الخلفية لضمان عمل Security Rules
   if (typeof window !== 'undefined') {
@@ -18,7 +20,7 @@ export function initializeFirebase() {
     });
   }
 
-  return { firebaseApp: app, firestore: db, auth };
+  return { firebaseApp: app, firestore: db, auth, storage };
 }
 
 export * from './provider';

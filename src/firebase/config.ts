@@ -2,10 +2,11 @@
 'use client';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSy...", // يتم استبدالها تلقائياً عند التشغيل
-  authDomain: "door-center-inventory.firebaseapp.com",
-  projectId: "door-center-inventory",
-  storageBucket: "door-center-inventory.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyC5PnDhxxfxwyjr1cKJdlmE1tdv8e4MsEg",
+  authDomain: "door-center-catalog-2026.firebaseapp.com",
+  projectId: "door-center-catalog-2026",
+  storageBucket: "door-center-catalog-2026.firebasestorage.app",
+  messagingSenderId: "247781421019",
+  appId: "1:247781421019:web:9766ffe4e2bcf69dbf01fe",
+  measurementId: "G-WW50BML3WN"
 };
