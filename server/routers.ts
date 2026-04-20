@@ -1,9 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
-import { getAllDoors, addDoor, updateDoor, deleteDoor } from "./db";
-import { uploadImageToStorage } from "./upload";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { systemRouter } from "./_core/systemRouter.js";
+import { publicProcedure, router } from "./_core/trpc.js";
+import { getAllDoors, addDoor, updateDoor, deleteDoor } from "./db.js";
+import { uploadImageToStorage } from "./upload.js";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -11,8 +11,8 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      const cookieOptions = getSessionCookieOptions(ctx.req as any);
+      (ctx.res as any).clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return {
         success: true,
       } as const;
