@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -37,15 +37,15 @@ export type Door = typeof doors.$inferSelect;
 export type InsertDoor = typeof doors.$inferInsert;
 
 export const orders = mysqlTable("orders", {
-  id: int("id").autoincrement().primaryKey(),
+  id: varchar("id", { length: 255 }).primaryKey(),
   customerName: varchar("customerName", { length: 255 }).notNull(),
   location: varchar("location", { length: 255 }).notNull(),
-  doorsCount: int("doorsCount").notNull().default(0),
-  orderDate: varchar("orderDate", { length: 20 }).notNull(),
-  installationDate: varchar("installationDate", { length: 20 }).notNull(),
-  downPayment: int("downPayment").notNull().default(0),
-  isDownPaymentPaid: int("isDownPaymentPaid").notNull().default(0),
-  isInstalled: int("isInstalled").notNull().default(0),
+  doorsCount: int("doorsCount"),
+  orderDate: varchar("orderDate", { length: 50 }).notNull(),
+  installationDate: varchar("installationDate", { length: 50 }).notNull(),
+  downPayment: int("downPayment"),
+  isDownPaymentPaid: boolean("isDownPaymentPaid").default(false).notNull(),
+  isInstalled: boolean("isInstalled").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

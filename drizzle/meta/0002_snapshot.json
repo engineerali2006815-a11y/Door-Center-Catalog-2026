@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "91e55990-f3b4-4763-a0c5-6e59edb607e6",
+  "id": "73374c00-4c0c-40e1-b686-6a2b1ec0639e",
   "prevId": "fd390b85-f41c-4f88-8175-65ae394523c7",
   "tables": {
     "doors": {
@@ -71,10 +71,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "int",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": true
+          "autoincrement": false
         },
         "customerName": {
           "name": "customerName",
@@ -94,20 +94,19 @@
           "name": "doorsCount",
           "type": "int",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
+          "notNull": false,
+          "autoincrement": false
         },
         "orderDate": {
           "name": "orderDate",
-          "type": "varchar(20)",
+          "type": "varchar(50)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "installationDate": {
           "name": "installationDate",
-          "type": "varchar(20)",
+          "type": "varchar(50)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -116,25 +115,24 @@
           "name": "downPayment",
           "type": "int",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
+          "notNull": false,
+          "autoincrement": false
         },
         "isDownPaymentPaid": {
           "name": "isDownPaymentPaid",
-          "type": "int",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 0
+          "default": false
         },
         "isInstalled": {
           "name": "isInstalled",
-          "type": "int",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 0
+          "default": false
         },
         "createdAt": {
           "name": "createdAt",

@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import { publicProcedure, router } from "./_core/trpc.js";
-import { getAllDoors, addDoor, updateDoor, deleteDoor, getAllOrders, addOrder, updateOrder, deleteOrder } from "./db.js";
+import { getAllDoors, addDoor, updateDoor, deleteDoor, getAllOrders, replaceAllOrders } from "./db.js";
 import { uploadImageToStorage } from "./upload.js";
 import { z } from "zod";
 
@@ -68,47 +68,38 @@ export const appRouter = router({
         return await deleteDoor(input.id);
       }),
   }),
-
   orders: router({
     list: publicProcedure.query(async () => {
       return await getAllOrders();
     }),
-    add: publicProcedure
+    saveAll: publicProcedure
       .input(z.object({
-        customerName: z.string().min(1),
-        location: z.string().min(1),
-        doorsCount: z.number().default(0),
-        orderDate: z.string().min(1),
-        installationDate: z.string().min(1),
-        downPayment: z.number().default(0),
-        isDownPaymentPaid: z.number().default(0),
-        isInstalled: z.number().default(0),
+        orders: z.array(z.object({
+          id: z.string(),
+          customerName: z.string(),
+          location: z.string(),
+          doorsCount: z.number().nullable(),
+          orderDate: z.string(),
+          installationDate: z.string(),
+          downPayment: z.number().nullable(),
+          isDownPaymentPaid: z.boolean(),
+          isInstalled: z.boolean(),
+        })),
+        passcode: z.string(),
       }))
       .mutation(async ({ input }) => {
-        return await addOrder(input);
-      }),
-    update: publicProcedure
-      .input(z.object({
-        id: z.number(),
-        customerName: z.string().min(1).optional(),
-        location: z.string().min(1).optional(),
-        doorsCount: z.number().optional(),
-        orderDate: z.string().min(1).optional(),
-        installationDate: z.string().min(1).optional(),
-        downPayment: z.number().optional(),
-        isDownPaymentPaid: z.number().optional(),
-        isInstalled: z.number().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        return await updateOrder(id, data);
-      }),
-    delete: publicProcedure
-      .input(z.object({
-        id: z.number(),
-      }))
-      .mutation(async ({ input }) => {
-        return await deleteOrder(input.id);
+        if (input.passcode !== '2026326') {
+          throw new Error('Invalid passcode');
+        }
+        
+        // Map nulls back to valid DB insertions if needed, but Drizzle handles null for optional int fields
+        const ordersToSave = input.orders.map(o => ({
+          ...o,
+          doorsCount: o.doorsCount ?? null,
+          downPayment: o.downPayment ?? null,
+        }));
+        
+        return await replaceAllOrders(ordersToSave);
       }),
   }),
 });
