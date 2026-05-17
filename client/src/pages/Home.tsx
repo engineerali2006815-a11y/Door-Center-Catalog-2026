@@ -7,6 +7,8 @@ import { Loader2, Plus, Search, PackageSearch, ShieldCheck, User } from 'lucide-
 import { cn } from '@/lib/utils';
 import AddDoorForm from '@/components/AddDoorForm';
 import DoorCard from '@/components/DoorCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AdminOrdersTable from '@/components/AdminOrdersTable';
 
 type Role = 'admin' | 'customer' | null;
 
@@ -98,10 +100,55 @@ export default function Home() {
     );
   }
 
+  const catalogContent = (
+    <>
+      {/* Search Bar */}
+      <section className="bg-white p-4 rounded-xl border border-gray-200 mb-8 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Input
+            placeholder="ابحث برمز الباب..."
+            className="pl-10 h-12 bg-gray-50 border-gray-200"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </section>
+
+      {/* Doors Grid */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+          <p className="text-gray-600">جاري تحميل الكتالوج...</p>
+        </div>
+      ) : filteredDoors.length > 0 ? (
+        <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredDoors.map(door => (
+            <DoorCard
+              key={door.id}
+              door={door}
+              isAdmin={role === 'admin'}
+              onDelete={handleDeleteDoor}
+              onEdit={(d) => setEditingDoor(d)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-300">
+          <div className="bg-gray-100 p-6 rounded-full mb-4">
+            <PackageSearch className="w-16 h-16 text-gray-400" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-600">لا توجد نتائج مطابقة</h3>
+          <Button variant="link" className="mt-2 text-blue-600" onClick={() => setSearchQuery('')}>إعادة تعيين البحث</Button>
+        </div>
+      )}
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 font-body" dir="rtl">
+    <div className="min-h-screen bg-gray-50 font-body print:bg-white print:min-h-0" dir="rtl">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b border-gray-200 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-blue-600">Door Center</h1>
@@ -149,45 +196,21 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Search Bar */}
-        <section className="bg-white p-4 rounded-xl border border-gray-200 mb-8 shadow-sm">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="ابحث برمز الباب..."
-              className="pl-10 h-12 bg-gray-50 border-gray-200"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </section>
-
-        {/* Doors Grid */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-gray-600">جاري تحميل الكتالوج...</p>
-          </div>
-        ) : filteredDoors.length > 0 ? (
-          <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredDoors.map(door => (
-              <DoorCard
-                key={door.id}
-                door={door}
-                isAdmin={role === 'admin'}
-                onDelete={handleDeleteDoor}
-                onEdit={(d) => setEditingDoor(d)}
-              />
-            ))}
-          </div>
+        {role === 'admin' ? (
+          <Tabs defaultValue="catalog" className="w-full" dir="rtl">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 h-12 print:hidden">
+              <TabsTrigger value="catalog" className="text-lg">الكتالوج</TabsTrigger>
+              <TabsTrigger value="orders" className="text-lg">المبيعات</TabsTrigger>
+            </TabsList>
+            <TabsContent value="catalog" className="mt-0">
+              {catalogContent}
+            </TabsContent>
+            <TabsContent value="orders" className="mt-0">
+              <AdminOrdersTable />
+            </TabsContent>
+          </Tabs>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-300">
-            <div className="bg-gray-100 p-6 rounded-full mb-4">
-              <PackageSearch className="w-16 h-16 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-600">لا توجد نتائج مطابقة</h3>
-            <Button variant="link" className="mt-2 text-blue-600" onClick={() => setSearchQuery('')}>إعادة تعيين البحث</Button>
-          </div>
+          catalogContent
         )}
       </main>
     </div>
