@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import { publicProcedure, router } from "./_core/trpc.js";
-import { getAllDoors, addDoor, updateDoor, deleteDoor } from "./db.js";
+import { getAllDoors, addDoor, updateDoor, deleteDoor, getAllOrders, addOrder, updateOrder, deleteOrder } from "./db.js";
 import { uploadImageToStorage } from "./upload.js";
 import { z } from "zod";
 
@@ -66,6 +66,49 @@ export const appRouter = router({
           throw new Error('Invalid passcode');
         }
         return await deleteDoor(input.id);
+      }),
+  }),
+
+  orders: router({
+    list: publicProcedure.query(async () => {
+      return await getAllOrders();
+    }),
+    add: publicProcedure
+      .input(z.object({
+        customerName: z.string().min(1),
+        location: z.string().min(1),
+        doorsCount: z.number().default(0),
+        orderDate: z.string().min(1),
+        installationDate: z.string().min(1),
+        downPayment: z.number().default(0),
+        isDownPaymentPaid: z.number().default(0),
+        isInstalled: z.number().default(0),
+      }))
+      .mutation(async ({ input }) => {
+        return await addOrder(input);
+      }),
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        customerName: z.string().min(1).optional(),
+        location: z.string().min(1).optional(),
+        doorsCount: z.number().optional(),
+        orderDate: z.string().min(1).optional(),
+        installationDate: z.string().min(1).optional(),
+        downPayment: z.number().optional(),
+        isDownPaymentPaid: z.number().optional(),
+        isInstalled: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await updateOrder(id, data);
+      }),
+    delete: publicProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        return await deleteOrder(input.id);
       }),
   }),
 });

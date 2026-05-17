@@ -35,3 +35,20 @@ export const doors = mysqlTable("doors", {
 
 export type Door = typeof doors.$inferSelect;
 export type InsertDoor = typeof doors.$inferInsert;
+
+export const orders = mysqlTable("orders", {
+  id: int("id").autoincrement().primaryKey(),
+  customerName: varchar("customerName", { length: 255 }).notNull(),
+  location: varchar("location", { length: 255 }).notNull(),
+  doorsCount: int("doorsCount").notNull().default(0),
+  orderDate: varchar("orderDate", { length: 20 }).notNull(),
+  installationDate: varchar("installationDate", { length: 20 }).notNull(),
+  downPayment: int("downPayment").notNull().default(0),
+  isDownPaymentPaid: int("isDownPaymentPaid").notNull().default(0),
+  isInstalled: int("isInstalled").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = typeof orders.$inferInsert;

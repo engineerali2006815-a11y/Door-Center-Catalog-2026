@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, doors } from "../drizzle/schema.js";
+import { InsertUser, users, orders, InsertOrder, Order, doors, InsertDoor, Door } from "../drizzle/schema.js";
 import { ENV } from './_core/env.js';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -152,6 +152,69 @@ export async function deleteDoor(id: number) {
     return result;
   } catch (error) {
     console.error("[Database] Failed to delete door:", error);
+    throw error;
+  }
+}
+
+// Orders queries
+export async function getAllOrders(): Promise<Order[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get orders: database not available");
+    return [];
+  }
+  try {
+    return await db.select().from(orders).orderBy(orders.createdAt);
+  } catch (error) {
+    console.error("[Database] Failed to get orders:", error);
+    return [];
+  }
+}
+
+export async function addOrder(orderData: InsertOrder): Promise<Order | null> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot add order: database not available");
+    return null;
+  }
+  try {
+    await db.insert(orders).values(orderData);
+    // Get the last inserted order
+    const allOrders = await db.select().from(orders).orderBy(orders.id);
+    return allOrders.length > 0 ? allOrders[allOrders.length - 1] : null;
+  } catch (error) {
+    console.error("[Database] Failed to add order:", error);
+    throw error;
+  }
+}
+
+export async function updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | null> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update order: database not available");
+    return null;
+  }
+  try {
+    await db.update(orders).set(orderData).where(eq(orders.id, id));
+    const updated = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+    return updated.length > 0 ? updated[0] : null;
+  } catch (error) {
+    console.error("[Database] Failed to update order:", error);
+    throw error;
+  }
+}
+
+export async function deleteOrder(id: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete order: database not available");
+    return false;
+  }
+  try {
+    await db.delete(orders).where(eq(orders.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete order:", error);
     throw error;
   }
 }

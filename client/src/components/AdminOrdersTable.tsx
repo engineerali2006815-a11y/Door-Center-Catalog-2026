@@ -1,13 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus, Trash2 } from 'lucide-react';
+import { Printer, Plus, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
+import { trpc } from '@/lib/trpc';
 
 export type Order = {
-  id: string;
+  id: number;
   customerName: string;
   location: string;
   doorsCount: number | '';
@@ -18,73 +19,117 @@ export type Order = {
   isInstalled: boolean;
 };
 
-// Initial mock data
-const INITIAL_ORDERS: Order[] = [
-  {
-    id: nanoid(),
-    customerName: 'أحمد محمود',
-    location: 'بغداد - المنصور',
-    doorsCount: 5,
-    orderDate: '2026-05-15',
-    installationDate: '2026-05-20',
-    downPayment: 500000,
-    isDownPaymentPaid: false,
-    isInstalled: false,
-  },
-  {
-    id: nanoid(),
-    customerName: 'علي حسن',
-    location: 'البصرة - العشار',
-    doorsCount: 3,
-    orderDate: '2026-05-16',
-    installationDate: '2026-05-22',
-    downPayment: 300000,
-    isDownPaymentPaid: true,
-    isInstalled: false,
-  },
-  {
-    id: nanoid(),
-    customerName: 'سارة محمد',
-    location: 'أربيل - عنكاوا',
-    doorsCount: 8,
-    orderDate: '2026-05-10',
-    installationDate: '2026-05-14',
-    downPayment: 1500000,
-    isDownPaymentPaid: true,
-    isInstalled: true,
-  },
-];
-
 export default function AdminOrdersTable() {
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // tRPC queries and mutations
+  const { data: dbOrders = [], isLoading: isLoadingOrders } = trpc.orders.list.useQuery();
+  const addOrderMutation = trpc.orders.add.useMutation();
+  const updateOrderMutation = trpc.orders.update.useMutation();
+  const deleteOrderMutation = trpc.orders.delete.useMutation();
+
+  // Load orders from database on mount
+  useEffect(() => {
+    if (!isLoadingOrders) {
+      const formattedOrders = dbOrders.map(order => ({
+        id: order.id,
+        customerName: order.customerName,
+        location: order.location,
+        doorsCount: order.doorsCount,
+        orderDate: order.orderDate,
+        installationDate: order.installationDate,
+        downPayment: order.downPayment,
+        isDownPaymentPaid: Boolean(order.isDownPaymentPaid),
+        isInstalled: Boolean(order.isInstalled),
+      }));
+      setOrders(formattedOrders);
+      setIsLoading(false);
+    }
+  }, [dbOrders, isLoadingOrders]);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleAddRow = () => {
-    setOrders([
-      ...orders,
-      {
-        id: nanoid(),
-        customerName: '',
-        location: '',
-        doorsCount: '',
-        orderDate: '',
-        installationDate: '',
-        downPayment: '',
-        isDownPaymentPaid: false,
-        isInstalled: false,
+  const handleAddRow = async () => {
+    const newOrder: Order = {
+      id: -1,
+      customerName: '',
+      location: '',
+      doorsCount: '',
+      orderDate: '',
+      installationDate: '',
+      downPayment: '',
+      isDownPaymentPaid: false,
+      isInstalled: false,
+    };
+    setOrders([...orders, newOrder]);
+  };
+
+  const handleDeleteRow = async (id: number) => {
+    if (id > 0) {
+      try {
+        setIsSaving(true);
+        await deleteOrderMutation.mutateAsync({ id });
+        setOrders(prev => prev.filter(o => o.id !== id));
+      } catch (error) {
+        console.error('Failed to delete order:', error);
+      } finally {
+        setIsSaving(false);
       }
-    ]);
+    } else {
+      setOrders(prev => prev.filter(o => o.id !== id));
+    }
   };
 
-  const handleDeleteRow = (id: string) => {
-    setOrders(prev => prev.filter(o => o.id !== id));
+  const updateField = async (id: number, field: keyof Order, value: any) => {
+    const updatedOrders = orders.map(o => (o.id === id ? { ...o, [field]: value } : o));
+    setOrders(updatedOrders);
+
+    // Save to database if it's an existing order
+    if (id > 0) {
+      try {
+        setIsSaving(true);
+        const order = updatedOrders.find(o => o.id === id);
+        if (order) {
+          await updateOrderMutation.mutateAsync({
+            id,
+            [field]: value,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update order:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
-  const updateField = (id: string, field: keyof Order, value: any) => {
-    setOrders(prev => prev.map(o => (o.id === id ? { ...o, [field]: value } : o)));
+  const saveNewOrder = async (order: Order) => {
+    if (order.id === -1 && order.customerName) {
+      try {
+        setIsSaving(true);
+        const result = await addOrderMutation.mutateAsync({
+          customerName: order.customerName,
+          location: order.location,
+          doorsCount: Number(order.doorsCount) || 0,
+          orderDate: order.orderDate,
+          installationDate: order.installationDate,
+          downPayment: Number(order.downPayment) || 0,
+          isDownPaymentPaid: order.isDownPaymentPaid ? 1 : 0,
+          isInstalled: order.isInstalled ? 1 : 0,
+        });
+        
+        // Update the local order with the database ID
+        setOrders(prev => prev.map(o => (o.id === -1 ? { ...o, id: result?.id || -1 } : o)));
+      } catch (error) {
+        console.error('Failed to save order:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
   // Smart Date Parsing logic
@@ -92,11 +137,10 @@ export default function AdminOrdersTable() {
     const str = val.trim();
     if (!str) return str;
     
-    // Check if it's like 5/16 or 05/16 or 5-16
     const shortDateRegex = /^(\d{1,2})[\/\-](\d{1,2})$/;
     const match = str.match(shortDateRegex);
     if (match) {
-      const currentYear = new Date().getFullYear(); // e.g., 2026
+      const currentYear = new Date().getFullYear();
       let month = match[1].padStart(2, '0');
       let day = match[2].padStart(2, '0');
       return `${currentYear}-${month}-${day}`;
@@ -104,10 +148,19 @@ export default function AdminOrdersTable() {
     return str;
   };
 
-  const handleDateBlur = (id: string, field: 'orderDate' | 'installationDate', val: string) => {
+  const handleDateBlur = (id: number, field: 'orderDate' | 'installationDate', val: string) => {
     const parsed = parseDate(val);
     if (parsed !== val) {
       updateField(id, field, parsed);
+    } else if (id > 0) {
+      updateField(id, field, parsed);
+    }
+  };
+
+  const handleFieldBlur = (id: number, field: keyof Order) => {
+    const order = orders.find(o => o.id === id);
+    if (order && id === -1) {
+      saveNewOrder(order);
     }
   };
 
@@ -125,8 +178,26 @@ export default function AdminOrdersTable() {
     return new Intl.NumberFormat('ar-IQ', { style: 'currency', currency: 'IQD' }).format(amount);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-600">جاري تحميل بيانات المبيعات...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm print:p-0 print:shadow-none" dir="rtl">
+    <div className="bg-white p-6 rounded-xl shadow-sm print:p-0 print:shadow-none relative" dir="rtl">
+      {isSaving && (
+        <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-xl z-50">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-sm text-gray-600">جاري الحفظ...</p>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 flex justify-between items-center print:hidden">
         <h2 className="text-2xl font-bold text-blue-900">إدارة المبيعات والتركيبات</h2>
         <div className="flex gap-3 items-center">
@@ -202,7 +273,7 @@ export default function AdminOrdersTable() {
                     value={order.installationDate}
                     onChange={(e) => updateField(order.id, 'installationDate', e.target.value)}
                     onBlur={(e) => handleDateBlur(order.id, 'installationDate', e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleDateBlur(order.id, 'installationDate', order.installationDate)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleDateBlur(order.id, 'installationDate', order.installationDate as string)}
                     placeholder="YYYY-MM-DD"
                   />
                 </TableCell>
@@ -212,7 +283,7 @@ export default function AdminOrdersTable() {
                     value={order.orderDate}
                     onChange={(e) => updateField(order.id, 'orderDate', e.target.value)}
                     onBlur={(e) => handleDateBlur(order.id, 'orderDate', e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleDateBlur(order.id, 'orderDate', order.orderDate)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleDateBlur(order.id, 'orderDate', order.orderDate as string)}
                     placeholder="YYYY-MM-DD"
                   />
                 </TableCell>
@@ -223,6 +294,7 @@ export default function AdminOrdersTable() {
                       className="w-16 bg-blue-100/50 hover:bg-blue-100 focus:bg-white border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-lg py-1 text-center font-bold text-blue-800 transition-colors print:bg-transparent print:p-0 print:text-black"
                       value={order.doorsCount}
                       onChange={(e) => updateField(order.id, 'doorsCount', e.target.value === '' ? '' : Number(e.target.value))}
+                      onBlur={() => handleFieldBlur(order.id, 'doorsCount')}
                       placeholder="0"
                       min="0"
                     />
@@ -233,6 +305,7 @@ export default function AdminOrdersTable() {
                     className="w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-md px-2 py-1.5 transition-all text-right text-gray-800 print:p-0 print:text-black"
                     value={order.location}
                     onChange={(e) => updateField(order.id, 'location', e.target.value)}
+                    onBlur={() => handleFieldBlur(order.id, 'location')}
                     placeholder="الموقع..."
                   />
                 </TableCell>
@@ -241,6 +314,7 @@ export default function AdminOrdersTable() {
                     className="w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-md px-2 py-1.5 transition-all text-right font-bold text-gray-900 print:p-0 print:text-black"
                     value={order.customerName}
                     onChange={(e) => updateField(order.id, 'customerName', e.target.value)}
+                    onBlur={() => handleFieldBlur(order.id, 'customerName')}
                     placeholder="اسم العميل..."
                   />
                 </TableCell>
@@ -254,6 +328,7 @@ export default function AdminOrdersTable() {
                       )}
                       value={order.downPayment}
                       onChange={(e) => updateField(order.id, 'downPayment', e.target.value === '' ? '' : Number(e.target.value))}
+                      onBlur={() => handleFieldBlur(order.id, 'downPayment')}
                       placeholder="0"
                       min="0"
                       step="1000"
