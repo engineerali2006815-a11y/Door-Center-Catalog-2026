@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, doors, orders, InsertOrder } from "../drizzle/schema.js";
 import { ENV } from './_core/env.js';
 
+
 let _db: ReturnType<typeof drizzle> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
@@ -156,31 +157,85 @@ export async function deleteDoor(id: number) {
   }
 }
 
-import { storagePut, storageGet } from './storage.js';
-
 export async function getAllOrders() {
-  try {
-    const { url } = await storageGet('data/orders.json');
-    if (!url) return [];
-    
-    // We must catch fetch errors if the file doesn't exist yet
-    const response = await fetch(url);
-    if (response.ok) {
-      return await response.json();
-    }
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get orders: database not available");
     return [];
+  }
+
+  try {
+    const result = await db.select().from(orders).orderBy(orders.createdAt);
+    return result;
   } catch (error) {
-    console.warn("[Database/Storage] Failed to get orders (may be empty):", error);
+    console.error("[Database] Failed to get orders:", error);
     return [];
   }
 }
 
-export async function replaceAllOrders(newOrders: InsertOrder[]) {
+export async function addOrder(order: InsertOrder) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
   try {
-    await storagePut('data/orders.json', JSON.stringify(newOrders), 'application/json');
+    const result = await db.insert(orders).values(order);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to add order:", error);
+    throw error;
+  }
+}
+
+export async function updateOrder(id: string, updates: Partial<InsertOrder>) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.update(orders).set(updates).where(eq(orders.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update order:", error);
+    throw error;
+  }
+}
+
+export async function deleteOrder(id: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.delete(orders).where(eq(orders.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to delete order:", error);
+    throw error;
+  }
+}
+
+export async function replaceAllOrders(newOrders: InsertOrder[]) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    // Delete all existing orders
+    await db.delete(orders);
+    
+    // Insert new orders
+    if (newOrders.length > 0) {
+      await db.insert(orders).values(newOrders);
+    }
+    
     return { success: true };
   } catch (error) {
-    console.error("[Database/Storage] Failed to replace orders:", error);
+    console.error("[Database] Failed to replace orders:", error);
     throw error;
   }
 }

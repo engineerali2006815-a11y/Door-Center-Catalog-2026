@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus, Trash2, CloudUpload, Loader2 } from 'lucide-react';
+import { Printer, Plus, Trash2, CloudUpload, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
 
@@ -22,58 +22,97 @@ export type Order = {
 
 export default function AdminOrdersTable() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [lastSaveTime, setLastSaveTime] = useState<string>('');
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   
   // TRPC Hooks
-  const { data: initialOrders, isLoading: isFetching } = trpc.orders.list.useQuery();
+  const { data: initialOrders, isLoading: isFetching, refetch } = trpc.orders.list.useQuery();
   const saveMutation = trpc.orders.saveAll.useMutation({
     onSuccess: () => {
+      const now = new Date().toLocaleTimeString('ar-IQ');
+      setLastSaveTime(now);
+      console.log('[AdminOrdersTable] ✓ Save successful at', now);
       toast.success("تم الحفظ سحابياً بنجاح!", {
-        description: "جميع بيانات الجدول تم مزامنتها مع الخادم."
+        description: `جميع بيانات الجدول تم مزامنتها مع الخادم في ${now}`
       });
     },
     onError: (err) => {
-      toast.error("فشل الحفظ", {
-        description: err.message
+      console.error('[AdminOrdersTable] ✗ Save failed:', err);
+      toast.error("فشل الحفظ السحابي", {
+        description: err.message || "حدث خطأ أثناء حفظ البيانات"
       });
     }
   });
 
   // Populate local state when data is loaded
   useEffect(() => {
-    if (initialOrders) {
+    if (initialOrders && initialOrders.length > 0) {
+      console.log('[AdminOrdersTable] Loaded', initialOrders.length, 'orders from database');
       setOrders(initialOrders as Order[]);
+    } else if (initialOrders) {
+      console.log('[AdminOrdersTable] Database is empty, starting with blank table');
+      setOrders([]);
     }
   }, [initialOrders]);
+
+  // Auto-save every 30 seconds if there are changes
+  useEffect(() => {
+    if (!autoSaveEnabled || orders.length === 0) return;
+
+    const autoSaveInterval = setInterval(async () => {
+      console.log('[AdminOrdersTable] Auto-saving', orders.length, 'orders...');
+      try {
+        await saveMutation.mutateAsync({
+          orders: orders,
+          passcode: '2026326'
+        });
+      } catch (error) {
+        console.error('[AdminOrdersTable] Auto-save failed:', error);
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [orders, autoSaveEnabled, saveMutation]);
 
   const handlePrint = () => {
     window.print();
   };
   
   const handleSaveToCloud = async () => {
-    await saveMutation.mutateAsync({
-      orders: orders,
-      passcode: '2026326'
-    });
+    console.log('[AdminOrdersTable] Manual save triggered with', orders.length, 'orders');
+    try {
+      await saveMutation.mutateAsync({
+        orders: orders,
+        passcode: '2026326'
+      });
+    } catch (error) {
+      console.error('[AdminOrdersTable] Manual save error:', error);
+    }
+  };
+
+  const handleRefresh = async () => {
+    console.log('[AdminOrdersTable] Refreshing data from database...');
+    await refetch();
   };
 
   const handleAddRow = () => {
-    setOrders([
-      ...orders,
-      {
-        id: nanoid(),
-        customerName: '',
-        location: '',
-        doorsCount: null,
-        orderDate: '',
-        installationDate: '',
-        downPayment: null,
-        isDownPaymentPaid: false,
-        isInstalled: false,
-      }
-    ]);
+    const newRow: Order = {
+      id: nanoid(),
+      customerName: '',
+      location: '',
+      doorsCount: null,
+      orderDate: '',
+      installationDate: '',
+      downPayment: null,
+      isDownPaymentPaid: false,
+      isInstalled: false,
+    };
+    console.log('[AdminOrdersTable] Adding new row with ID:', newRow.id);
+    setOrders([...orders, newRow]);
   };
 
   const handleDeleteRow = (id: string) => {
+    console.log('[AdminOrdersTable] Deleting row with ID:', id);
     setOrders(prev => prev.filter(o => o.id !== id));
   };
 
@@ -90,7 +129,7 @@ export default function AdminOrdersTable() {
     const shortDateRegex = /^(\d{1,2})[\/\-](\d{1,2})$/;
     const match = str.match(shortDateRegex);
     if (match) {
-      const currentYear = new Date().getFullYear(); // e.g., 2026
+      const currentYear = new Date().getFullYear();
       let month = match[1].padStart(2, '0');
       let day = match[2].padStart(2, '0');
       return `${currentYear}-${month}-${day}`;
@@ -131,7 +170,12 @@ export default function AdminOrdersTable() {
   return (
     <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm print:p-0 print:shadow-none" dir="rtl">
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
-        <h2 className="text-2xl font-bold text-blue-900">إدارة المبيعات والتركيبات</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-blue-900">إدارة المبيعات والتركيبات</h2>
+          {lastSaveTime && (
+            <p className="text-sm text-gray-500 mt-1">آخر حفظ: {lastSaveTime}</p>
+          )}
+        </div>
         <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
           <span className="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full whitespace-nowrap">
             العدد الإجمالي: {orders.length}
@@ -140,9 +184,19 @@ export default function AdminOrdersTable() {
             onClick={handleSaveToCloud} 
             disabled={saveMutation.isPending}
             className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 flex-1 sm:flex-none"
+            title="احفظ جميع البيانات في السحابة"
           >
             {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
             حفظ سحابياً
+          </Button>
+          <Button 
+            onClick={handleRefresh} 
+            disabled={isFetching}
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 flex-1 sm:flex-none"
+            title="تحديث البيانات من السحابة"
+          >
+            {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            تحديث
           </Button>
           <Button onClick={handlePrint} className="bg-slate-800 hover:bg-slate-700 text-white gap-2 flex-1 sm:flex-none">
             <Printer className="w-4 h-4" />
@@ -150,161 +204,147 @@ export default function AdminOrdersTable() {
           </Button>
         </div>
       </div>
-      
-      <div className="rounded-xl border border-gray-200 bg-white print:border-none print:rounded-none overflow-hidden">
-        <div className="overflow-x-auto w-full">
-          <Table className="print:text-sm min-w-[800px] w-full">
-            <TableHeader className="bg-slate-900 print:bg-gray-200 print:text-black">
-              <TableRow className="hover:bg-slate-900 border-b-0 print:border-b-2 print:border-gray-800">
-                <TableHead className="text-right text-white font-bold py-4 px-2 w-16 print:hidden whitespace-nowrap">إجراءات</TableHead>
-                <TableHead className="text-right text-white font-bold py-4 px-2 w-20 print:text-black whitespace-nowrap">حالة الشد</TableHead>
-                <TableHead className="text-right text-white font-bold py-4 px-2 w-24 print:text-black whitespace-nowrap">حالة المقدمة</TableHead>
-                <TableHead className="text-right text-white font-bold py-4 px-2 print:text-black whitespace-nowrap min-w-[120px]">موعد الشد</TableHead>
-                <TableHead className="text-right text-white font-bold py-4 px-2 print:text-black whitespace-nowrap min-w-[120px]">التاريخ</TableHead>
-                <TableHead className="text-center text-white font-bold py-4 px-2 w-24 print:text-black whitespace-nowrap">عدد الأبواب</TableHead>
-                <TableHead className="text-right text-white font-bold py-4 px-2 print:text-black whitespace-nowrap min-w-[150px]">الموقع</TableHead>
-                <TableHead className="text-right text-white font-bold py-4 px-2 print:text-black whitespace-nowrap min-w-[150px]">الاسم</TableHead>
-                <TableHead className="text-left text-white font-bold py-4 px-4 w-32 print:text-black whitespace-nowrap min-w-[120px]">المقدمة</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order, index) => (
-                <TableRow 
-                  key={order.id} 
-                  className={cn(
-                    "transition-colors group",
-                    index % 2 === 0 ? "bg-white" : "bg-slate-50",
-                    "hover:bg-blue-50/80 print:hover:bg-transparent"
-                  )}
-                >
-                  <TableCell className="px-2 py-1 print:hidden align-middle text-center whitespace-nowrap">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDeleteRow(order.id)}
-                      className="text-red-400 hover:text-red-700 hover:bg-red-50 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="px-2 py-1 align-middle whitespace-nowrap">
-                    <div className="flex justify-start">
-                      <Checkbox 
-                        checked={order.isInstalled}
-                        onCheckedChange={(checked) => updateField(order.id, 'isInstalled', checked)}
-                        className="border-gray-400 data-[state=checked]:bg-blue-600 h-5 w-5 rounded-sm print:border-black"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-2 py-1 align-middle whitespace-nowrap">
-                    <div className="flex justify-start">
-                      <Checkbox 
-                        checked={order.isDownPaymentPaid}
-                        onCheckedChange={(checked) => updateField(order.id, 'isDownPaymentPaid', checked)}
-                        className="border-gray-400 data-[state=checked]:bg-blue-600 h-5 w-5 rounded-sm print:border-black"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-1 py-1 align-middle whitespace-nowrap">
-                    <input
-                      className={cn(
-                        "w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-md px-2 py-1.5 transition-all text-right font-medium print:p-0",
-                        order.isInstalled && "line-through text-gray-400 print:text-gray-600"
-                      )}
-                      value={order.installationDate || ''}
-                      onChange={(e) => updateField(order.id, 'installationDate', e.target.value)}
-                      onBlur={(e) => handleDateBlur(order.id, 'installationDate', e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleDateBlur(order.id, 'installationDate', order.installationDate)}
-                      placeholder="YYYY-MM-DD"
-                    />
-                  </TableCell>
-                  <TableCell className="px-1 py-1 align-middle whitespace-nowrap">
-                    <input
-                      className="w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-md px-2 py-1.5 transition-all text-right text-gray-700 print:p-0 print:text-black"
-                      value={order.orderDate || ''}
-                      onChange={(e) => updateField(order.id, 'orderDate', e.target.value)}
-                      onBlur={(e) => handleDateBlur(order.id, 'orderDate', e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleDateBlur(order.id, 'orderDate', order.orderDate)}
-                      placeholder="YYYY-MM-DD"
-                    />
-                  </TableCell>
-                  <TableCell className="px-1 py-1 align-middle whitespace-nowrap">
-                    <div className="flex justify-center">
-                      <input
-                        type="number"
-                        className="w-16 bg-blue-100/50 hover:bg-blue-100 focus:bg-white border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-lg py-1 text-center font-bold text-blue-800 transition-colors print:bg-transparent print:p-0 print:text-black"
-                        value={order.doorsCount === null ? '' : order.doorsCount}
-                        onChange={(e) => updateField(order.id, 'doorsCount', e.target.value === '' ? null : Number(e.target.value))}
-                        placeholder="0"
-                        min="0"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-1 py-1 align-middle whitespace-nowrap">
-                    <input
-                      className="w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-md px-2 py-1.5 transition-all text-right text-gray-800 print:p-0 print:text-black min-w-[120px]"
-                      value={order.location || ''}
-                      onChange={(e) => updateField(order.id, 'location', e.target.value)}
-                      placeholder="الموقع..."
-                    />
-                  </TableCell>
-                  <TableCell className="px-1 py-1 align-middle whitespace-nowrap">
-                    <input
-                      className="w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-md px-2 py-1.5 transition-all text-right font-bold text-gray-900 print:p-0 print:text-black min-w-[120px]"
-                      value={order.customerName || ''}
-                      onChange={(e) => updateField(order.id, 'customerName', e.target.value)}
-                      placeholder="اسم العميل..."
-                    />
-                  </TableCell>
-                  <TableCell className="px-1 py-1 align-middle whitespace-nowrap">
-                    <div className="relative">
-                      <input
-                        type="number"
-                        className={cn(
-                          "w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-400 rounded-md px-2 py-1.5 transition-all text-left font-bold print:p-0 print:text-black min-w-[100px]",
-                          order.isDownPaymentPaid ? "line-through text-gray-400 print:text-gray-600" : "text-emerald-600 print:text-black"
-                        )}
-                        value={order.downPayment === null ? '' : order.downPayment}
-                        onChange={(e) => updateField(order.id, 'downPayment', e.target.value === '' ? null : Number(e.target.value))}
-                        placeholder="0"
-                        min="0"
-                        step="1000"
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter className="bg-slate-100 border-t-2 border-slate-300 sticky bottom-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] print:border-t-2 print:border-black print:bg-white print:text-black">
-              <TableRow className="hover:bg-slate-100 print:hover:bg-transparent">
-                <TableCell className="print:hidden whitespace-nowrap"></TableCell>
-                <TableCell colSpan={4} className="text-right font-bold text-slate-700 py-4 px-4 text-lg print:text-black whitespace-nowrap">
-                  المجموع الكلي:
+
+      <div className="overflow-x-auto">
+        <Table className="w-full text-sm">
+          <TableHeader>
+            <TableRow className="bg-blue-50 border-b-2 border-blue-200">
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">اسم العميل</TableHead>
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">الموقع</TableHead>
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">عدد الأبواب</TableHead>
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">تاريخ الطلب</TableHead>
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">تاريخ التركيب</TableHead>
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">المقدمة</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900">استلام المقدمة</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900">مركب</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900">حذف</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {orders.map((order, idx) => (
+              <TableRow key={order.id} className={cn(
+                "border-b hover:bg-blue-50 transition-colors",
+                idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+              )}>
+                <TableCell className="py-3 px-2">
+                  <input
+                    type="text"
+                    value={order.customerName}
+                    onChange={(e) => updateField(order.id, 'customerName', e.target.value)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="أدخل اسم العميل"
+                  />
                 </TableCell>
-                <TableCell className="text-center font-black text-blue-800 py-4 px-2 text-xl print:text-black whitespace-nowrap">
-                  {totalDoors}
+                <TableCell className="py-3 px-2">
+                  <input
+                    type="text"
+                    value={order.location}
+                    onChange={(e) => updateField(order.id, 'location', e.target.value)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="أدخل الموقع"
+                  />
                 </TableCell>
-                <TableCell colSpan={2} className="text-right font-bold text-slate-700 py-4 px-4 text-lg print:text-black whitespace-nowrap">
-                  مجموع المبالغ غير المستلمة:
+                <TableCell className="py-3 px-2">
+                  <input
+                    type="number"
+                    value={order.doorsCount ?? ''}
+                    onChange={(e) => updateField(order.id, 'doorsCount', e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0"
+                  />
                 </TableCell>
-                <TableCell className="text-left font-black text-emerald-600 py-4 px-4 text-xl tracking-tight print:text-black whitespace-nowrap">
-                  {formatCurrency(totalUnreceived)}
+                <TableCell className="py-3 px-2">
+                  <input
+                    type="text"
+                    value={order.orderDate}
+                    onChange={(e) => updateField(order.id, 'orderDate', e.target.value)}
+                    onBlur={(e) => handleDateBlur(order.id, 'orderDate', e.target.value)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="YYYY-MM-DD أو M/D"
+                  />
+                </TableCell>
+                <TableCell className="py-3 px-2">
+                  <input
+                    type="text"
+                    value={order.installationDate}
+                    onChange={(e) => updateField(order.id, 'installationDate', e.target.value)}
+                    onBlur={(e) => handleDateBlur(order.id, 'installationDate', e.target.value)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="YYYY-MM-DD أو M/D"
+                  />
+                </TableCell>
+                <TableCell className="py-3 px-2">
+                  <input
+                    type="number"
+                    value={order.downPayment ?? ''}
+                    onChange={(e) => updateField(order.id, 'downPayment', e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0"
+                  />
+                </TableCell>
+                <TableCell className="py-3 px-2 text-center">
+                  <Checkbox
+                    checked={order.isDownPaymentPaid}
+                    onCheckedChange={(checked) => updateField(order.id, 'isDownPaymentPaid', checked)}
+                    className="mx-auto"
+                  />
+                </TableCell>
+                <TableCell className="py-3 px-2 text-center">
+                  <Checkbox
+                    checked={order.isInstalled}
+                    onCheckedChange={(checked) => updateField(order.id, 'isInstalled', checked)}
+                    className="mx-auto"
+                  />
+                </TableCell>
+                <TableCell className="py-3 px-2 text-center">
+                  <Button
+                    onClick={() => handleDeleteRow(order.id)}
+                    size="sm"
+                    variant="destructive"
+                    className="gap-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    حذف
+                  </Button>
                 </TableCell>
               </TableRow>
-            </TableFooter>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+          <TableFooter className="bg-blue-50 border-t-2 border-blue-200">
+            <TableRow>
+              <TableCell colSpan={9} className="py-4 px-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex gap-6">
+                    <div>
+                      <p className="text-sm text-gray-600">إجمالي الأبواب</p>
+                      <p className="text-lg font-bold text-blue-900">{totalDoors}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">المبالغ المستحقة</p>
+                      <p className="text-lg font-bold text-red-600">{formatCurrency(totalUnreceived)}</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleAddRow} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 w-full sm:w-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    إضافة صف جديد
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
       </div>
 
-      <div className="mt-4 print:hidden">
-        <Button 
-          onClick={handleAddRow}
-          variant="outline" 
-          className="w-full h-12 border-dashed border-2 border-slate-300 hover:border-blue-500 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold gap-2 text-lg"
-        >
-          <Plus className="w-5 h-5" />
-          إضافة صف جديد
-        </Button>
+      {/* Debug Info */}
+      <div className="mt-6 p-4 bg-gray-100 rounded text-xs text-gray-700 print:hidden">
+        <p className="font-bold mb-2">معلومات التصحيح:</p>
+        <p>عدد الصفوف: {orders.length}</p>
+        <p>حالة الحفظ: {saveMutation.isPending ? 'جاري الحفظ...' : 'جاهز'}</p>
+        <p>آخر حفظ: {lastSaveTime || 'لم يتم الحفظ بعد'}</p>
+        <p>الحفظ التلقائي: {autoSaveEnabled ? 'مفعل' : 'معطل'}</p>
       </div>
     </div>
   );
