@@ -20,6 +20,47 @@ export type Order = {
   isInstalled: boolean;
 };
 
+const AutosizeInput = ({ 
+  value, 
+  onChange, 
+  placeholder, 
+  className,
+  minWidth = 80,
+  maxWidth = 200
+}: { 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+  placeholder?: string;
+  className?: string;
+  minWidth?: number;
+  maxWidth?: number;
+}) => {
+  return (
+    <div 
+      className="relative overflow-hidden" 
+      style={{ 
+        width: 'max-content', 
+        minWidth: `${minWidth}px`, 
+        maxWidth: `${maxWidth}px` 
+      }}
+    >
+      <div 
+        className={cn("invisible whitespace-pre", className)} 
+        aria-hidden="true"
+      >
+        {value || placeholder || ''}
+      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={cn("absolute inset-0 w-full h-full", className)}
+      />
+    </div>
+  );
+};
+
 export default function AdminOrdersTable() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [lastSaveTime, setLastSaveTime] = useState<string>('');
@@ -220,18 +261,18 @@ export default function AdminOrdersTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <Table className="w-full text-sm">
+        <Table className="w-max text-sm mx-auto sm:mx-0">
           <TableHeader>
             <TableRow className="bg-blue-50 border-b-2 border-blue-200">
-              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">اسم العميل</TableHead>
-              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">الموقع</TableHead>
-              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">عدد الأبواب</TableHead>
-              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">تاريخ الطلب</TableHead>
-              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">تاريخ التركيب</TableHead>
-              <TableHead className="text-right py-3 px-2 font-bold text-blue-900">المقدمة</TableHead>
-              <TableHead className="text-center py-3 px-2 font-bold text-blue-900">استلام المقدمة</TableHead>
-              <TableHead className="text-center py-3 px-2 font-bold text-blue-900">مركب</TableHead>
-              <TableHead className="text-center py-3 px-2 font-bold text-blue-900">حذف</TableHead>
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900 whitespace-nowrap">اسم العميل</TableHead>
+              <TableHead className="text-right py-3 px-2 font-bold text-blue-900 whitespace-nowrap">الموقع</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900 whitespace-nowrap w-[60px]">عدد الأبواب</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900 whitespace-nowrap w-[110px]">تاريخ الطلب</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900 whitespace-nowrap w-[110px]">تاريخ التركيب</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900 whitespace-nowrap w-[100px]">المقدمة</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900 whitespace-nowrap">استلام المقدمة</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900 whitespace-nowrap">مركب</TableHead>
+              <TableHead className="text-center py-3 px-2 font-bold text-blue-900 whitespace-nowrap">حذف</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -240,63 +281,65 @@ export default function AdminOrdersTable() {
                 "border-b hover:bg-blue-50 transition-colors",
                 idx % 2 === 0 ? "bg-white" : "bg-gray-50"
               )}>
-                <TableCell className="py-3 px-2">
-                  <input
-                    type="text"
+                <TableCell className="py-2 px-2">
+                  <AutosizeInput
                     value={order.customerName}
                     onChange={(e) => updateField(order.id, 'customerName', e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent"
                     placeholder="أدخل اسم العميل"
+                    minWidth={120}
+                    maxWidth={300}
                   />
                 </TableCell>
-                <TableCell className="py-3 px-2">
-                  <input
-                    type="text"
+                <TableCell className="py-2 px-2">
+                  <AutosizeInput
                     value={order.location}
                     onChange={(e) => updateField(order.id, 'location', e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent"
                     placeholder="أدخل الموقع"
+                    minWidth={100}
+                    maxWidth={250}
                   />
                 </TableCell>
-                <TableCell className="py-3 px-2">
+                <TableCell className="py-2 px-2 text-center">
                   <input
                     type="number"
                     value={order.doorsCount ?? ''}
                     onChange={(e) => updateField(order.id, 'doorsCount', e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-[50px] mx-auto text-center px-1 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent"
                     placeholder="0"
                   />
                 </TableCell>
-                <TableCell className="py-3 px-2">
+                <TableCell className="py-2 px-2 text-center">
                   <input
                     type="text"
                     value={order.orderDate}
                     onChange={(e) => updateField(order.id, 'orderDate', e.target.value)}
                     onBlur={(e) => handleDateBlur(order.id, 'orderDate', e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="YYYY-MM-DD أو M/D"
+                    className="w-[110px] mx-auto text-center px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent"
+                    placeholder="YYYY-MM-DD"
                   />
                 </TableCell>
-                <TableCell className="py-3 px-2">
+                <TableCell className="py-2 px-2 text-center">
                   <input
                     type="text"
                     value={order.installationDate}
                     onChange={(e) => updateField(order.id, 'installationDate', e.target.value)}
                     onBlur={(e) => handleDateBlur(order.id, 'installationDate', e.target.value)}
                     className={cn(
-                      "w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500",
+                      "w-[110px] mx-auto text-center px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent",
                       order.isInstalled && "line-through opacity-40"
                     )}
-                    placeholder="YYYY-MM-DD أو M/D"
+                    placeholder="YYYY-MM-DD"
                   />
                 </TableCell>
-                <TableCell className="py-3 px-2">
+                <TableCell className="py-2 px-2 text-center">
                   <input
                     type="number"
                     value={order.downPayment ?? ''}
                     onChange={(e) => updateField(order.id, 'downPayment', e.target.value ? parseInt(e.target.value) : null)}
                     className={cn(
-                      "w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500",
+                      "w-[90px] mx-auto text-center px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent",
                       order.isDownPaymentPaid && "line-through opacity-40"
                     )}
                     placeholder="0"
