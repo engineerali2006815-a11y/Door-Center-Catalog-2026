@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `doors` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`code` varchar(100) NOT NULL,\n\t`imageUrl` text NOT NULL,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `doors_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `doors_code_unique` UNIQUE(`code`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48FPs5Zfzii43sV.8f8367d81a40 --database ekVmM67BdKdxeBekb6DQBR --execute CREATE TABLE `doors` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`code` varchar(100) NOT NULL,\n\t`imageUrl` text NOT NULL,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `doors_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `doors_code_unique` UNIQUE(`code`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 825
+}
