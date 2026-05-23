@@ -9,8 +9,10 @@ import AddDoorForm from '@/components/AddDoorForm';
 import DoorCard from '@/components/DoorCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminOrdersTable from '@/components/AdminOrdersTable';
+import InstallationMap from '@/components/InstallationMap';
+import { Map } from 'lucide-react';
 
-type Role = 'admin' | 'customer' | null;
+type Role = 'admin' | 'customer' | 'installer' | null;
 
 export default function Home() {
   const [role, setRole] = useState<Role>(null);
@@ -67,6 +69,15 @@ export default function Home() {
               <span>دخول كعميل (عرض فقط)</span>
             </Button>
 
+            <Button
+              onClick={() => setRole('installer')}
+              variant="outline"
+              className="h-20 text-xl gap-3 rounded-2xl border-2 hover:bg-orange-50 hover:border-orange-500 transition-all"
+            >
+              <Map className="w-8 h-8 text-orange-500" />
+              <span>فريق التركيبات (خريطة)</span>
+            </Button>
+
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="h-20 text-xl gap-3 rounded-2xl shadow-lg shadow-blue-600/20 bg-blue-600 hover:bg-blue-700">
@@ -98,6 +109,10 @@ export default function Home() {
         </div>
       </div>
     );
+  }
+
+  if (role === 'installer') {
+    return <InstallationMap onLogout={() => setRole(null)} />;
   }
 
   const catalogContent = (

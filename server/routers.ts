@@ -70,7 +70,33 @@ export const appRouter = router({
   }),
   orders: router({
     list: publicProcedure.query(async () => {
-      return await getAllOrders();
+      const orders = await getAllOrders();
+      return orders.map(order => {
+        let location = order.location;
+        let latitude = null;
+        let longitude = null;
+        let phoneNumber = null;
+
+        if (location.startsWith('{') && location.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(location);
+            location = parsed.address || '';
+            latitude = parsed.lat || null;
+            longitude = parsed.lng || null;
+            phoneNumber = parsed.phone || null;
+          } catch (e) {
+            // Ignore parse errors, treat as plain string
+          }
+        }
+
+        return {
+          ...order,
+          location,
+          latitude,
+          longitude,
+          phoneNumber
+        };
+      });
     }),
     saveAll: publicProcedure
       .input(z.object({
@@ -84,6 +110,9 @@ export const appRouter = router({
           downPayment: z.number().nullable(),
           isDownPaymentPaid: z.boolean(),
           isInstalled: z.boolean(),
+          latitude: z.number().nullable().optional(),
+          longitude: z.number().nullable().optional(),
+          phoneNumber: z.string().nullable().optional(),
         })),
         passcode: z.string(),
       }))
@@ -92,12 +121,29 @@ export const appRouter = router({
           throw new Error('Invalid passcode');
         }
         
-        // Map nulls back to valid DB insertions if needed, but Drizzle handles null for optional int fields
-        const ordersToSave = input.orders.map(o => ({
-          ...o,
-          doorsCount: o.doorsCount ?? null,
-          downPayment: o.downPayment ?? null,
-        }));
+        const ordersToSave = input.orders.map(o => {
+          let serializedLocation = o.location;
+          if (o.latitude != null || o.longitude != null || o.phoneNumber != null) {
+            serializedLocation = JSON.stringify({
+              address: o.location,
+              lat: o.latitude,
+              lng: o.longitude,
+              phone: o.phoneNumber
+            });
+          }
+
+          return {
+            id: o.id,
+            customerName: o.customerName,
+            location: serializedLocation,
+            doorsCount: o.doorsCount ?? null,
+            orderDate: o.orderDate,
+            installationDate: o.installationDate,
+            downPayment: o.downPayment ?? null,
+            isDownPaymentPaid: o.isDownPaymentPaid,
+            isInstalled: o.isInstalled,
+          };
+        });
         
         return await replaceAllOrders(ordersToSave);
       }),
